@@ -184,7 +184,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -258,7 +258,7 @@
           <i class="far fa-calendar-check"></i>
         </span>
         <span class="post-meta-item-text">更新于</span>
-        <time title="修改时间：2021-01-04 00:00:04" itemprop="dateModified" datetime="2021-01-04T00:00:04+08:00">2021-01-04</time>
+        <time title="修改时间：2021-01-04 00:02:25" itemprop="dateModified" datetime="2021-01-04T00:02:25+08:00">2021-01-04</time>
       </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -296,10 +296,9 @@
     
     
     <div class="post-body" itemprop="articleBody">
-          <h1 id="行人检测-跟踪demo说明文档"><a href="#行人检测-跟踪demo说明文档" class="headerlink" title="行人检测/跟踪demo说明文档"></a>行人检测/跟踪demo说明文档</h1><p>[TOC]</p>
-<p>本行人检测demon使用HOG描述子+SVM分类器进行实现，采用跟踪速度较快的MOSSE跟踪器进行跟踪，每15帧进行一次行人检测进而对检测到的行人数量进行一次刷新。行人检测/跟踪效果如下</p>
+          <h1 id="行人检测-跟踪demo说明文档"><a href="#行人检测-跟踪demo说明文档" class="headerlink" title="行人检测/跟踪demo说明文档"></a>行人检测/跟踪demo说明文档</h1><p>本行人检测demon使用HOG描述子+SVM分类器进行实现，采用跟踪速度较快的MOSSE跟踪器进行跟踪，每15帧进行一次行人检测进而对检测到的行人数量进行一次刷新。行人检测/跟踪效果如下</p>
 <p><img src="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/scale1_05_22_Mean.gif" alt="scale1_05_22_Mean"></p>
-<h2 id="一、理论基础"><a href="#一、理论基础" class="headerlink" title="一、理论基础"></a>一、理论基础</h2>
+<h2 id="一、理论基础"><a href="#一、理论基础" class="headerlink" title="一、理论基础"></a>一、理论基础</h2><p>行人检测、跟踪涉及目标检测与目标跟踪两大部分。对于目标检测部分，其大体流程图如下图所示。首先对于一张输入的图片，我们首先要使用<strong>特征描述子</strong>对它提取特征，特征描述子可以将目标区域输出为向量形式，我们称该向量为<strong>特征向量</strong>，常用的特征描述子有:HOG，SIFT，HAAR，SARF等。接下来我们要将特征描述子提取出的特征向量输入到训练好的分类器中，常见的分类器有SVM、Adaboost、ANN等。分类器输出的内容为分类标签，对于目标检测问题，分类器会输出判断结果(该区域是/否存在目标)，对于多分类问题分类器会输出不同的类别标签。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2021/01/03/%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8Bdemo%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/#more" rel="contents">
