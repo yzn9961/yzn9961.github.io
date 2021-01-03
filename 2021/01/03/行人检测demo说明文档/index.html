@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.3.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/logo-web.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/logo-web.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/logo-web.png">
+  <link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.1/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"github.com","root":"/","images":"/images","scheme":"Gemini","version":"8.1.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}};
+  </script>
+<meta name="description" content="行人检测&#x2F;跟踪demo说明文档[TOC] 本行人检测demon使用HOG描述子+SVM分类器进行实现，采用跟踪速度较快的MOSSE跟踪器进行跟踪，每15帧进行一次行人检测进而对检测到的行人数量进行一次刷新。行人检测&#x2F;跟踪效果如下  一、理论基础">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用HOG+MOSSE实现行人检测与跟踪">
+<meta property="og:url" content="https://github.com/yzn9961/yzn9961.github.io/2021/01/03/%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8Bdemo%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/index.html">
+<meta property="og:site_name" content="济川的个人博客">
+<meta property="og:description" content="行人检测&#x2F;跟踪demo说明文档[TOC] 本行人检测demon使用HOG描述子+SVM分类器进行实现，采用跟踪速度较快的MOSSE跟踪器进行跟踪，每15帧进行一次行人检测进而对检测到的行人数量进行一次刷新。行人检测&#x2F;跟踪效果如下  一、理论基础">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/scale1_05_22_Mean.gif">
+<meta property="og:image" content="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/image-classification-pipeline.jpg">
+<meta property="og:image" content="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/image-20210103162822272.png">
+<meta property="og:image" content="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8B%E4%B8%8E%E8%B7%9F%E8%B8%AA%E6%B5%81%E7%A8%8B%E5%9B%BE.svg">
+<meta property="article:published_time" content="2021-01-03T15:54:41.357Z">
+<meta property="article:modified_time" content="2021-01-03T15:56:21.014Z">
+<meta property="article:author" content="杨济宁">
+<meta property="article:tag" content="HOG特征，目标检测，目标跟踪">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/scale1_05_22_Mean.gif">
+
+
+<link rel="canonical" href="https://github.com/yzn9961/yzn9961.github.io/2021/01/03/%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8Bdemo%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+<title>使用HOG+MOSSE实现行人检测与跟踪 | 济川的个人博客</title>
+  
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">济川的个人博客</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">明德精学，笃行致强。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-个人简介"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>个人简介</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8B-%E8%B7%9F%E8%B8%AAdemo%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3"><span class="nav-text">行人检测&#x2F;跟踪demo说明文档</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80"><span class="nav-text">一、理论基础</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-HOG%E7%89%B9%E5%BE%81%E6%8F%8F%E8%BF%B0%E5%AD%90"><span class="nav-text">1.1 HOG特征描述子</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E4%BB%80%E4%B9%88%E6%98%AF%E7%89%B9%E5%BE%81%E6%8F%8F%E8%BF%B0%E5%AD%90%EF%BC%9F"><span class="nav-text">1.1.1 什么是特征描述子？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-HOG%E7%89%B9%E5%BE%81%E6%8F%8F%E8%BF%B0%E5%AD%90%E7%9A%84%E5%8E%9F%E7%90%86"><span class="nav-text">1.1.2 HOG特征描述子的原理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-SVM%E5%88%86%E7%B1%BB%E5%99%A8"><span class="nav-text">1.2  SVM分类器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E7%9B%AE%E6%A0%87%E8%B7%9F%E8%B8%AA%E7%AE%97%E6%B3%95"><span class="nav-text">1.3 目标跟踪算法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-text">二、代码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E5%99%A8%E7%9A%84%E5%B0%81%E8%A3%85"><span class="nav-text">2.1 目标检测器的封装</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E9%80%89%E6%8B%A9%E5%88%86%E7%B1%BB%E5%99%A8"><span class="nav-text">2.1.1 选择分类器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E5%A4%9A%E5%B0%BA%E5%BA%A6%E7%9A%84%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8B"><span class="nav-text">2.1.2 多尺度的行人检测</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-%E6%B6%88%E9%99%A4%E6%A3%80%E6%B5%8B%E6%A1%86%E7%9B%B8%E4%BA%92%E5%B5%8C%E5%A5%97"><span class="nav-text">2.1.3 消除检测框相互嵌套</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%B8%BB%E7%A8%8B%E5%BA%8F%E6%B5%81%E7%A8%8B"><span class="nav-text">2.2 主程序流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B"><span class="nav-text">2.2.1 目标检测</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E5%A4%9A%E7%9B%AE%E6%A0%87%E8%B7%9F%E8%B8%AA"><span class="nav-text">2.2.2 多目标跟踪</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-%E7%BB%9F%E8%AE%A1%E7%9B%AE%E6%A0%87%E4%BF%A1%E6%81%AF"><span class="nav-text">2.2.3 统计目标信息</span></a></li></ol></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="杨济宁"
+      src="https://i.loli.net/2020/12/30/8bF7syp2rSPZwcK.jpg">
+  <p class="site-author-name" itemprop="name">杨济宁</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yzn9961" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yzn9961"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://github.com/yzn9961/yzn9961.github.io/2021/01/03/%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8Bdemo%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://i.loli.net/2020/12/30/8bF7syp2rSPZwcK.jpg">
+      <meta itemprop="name" content="杨济宁">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="济川的个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用HOG+MOSSE实现行人检测与跟踪
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2021-01-03 23:54:41 / 修改时间：23:56:21" itemprop="dateCreated datePublished" datetime="2021-01-03T23:54:41+08:00">2021-01-03</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89/" itemprop="url" rel="index"><span itemprop="name">计算机视觉</span></a>
+        </span>
+    </span>
+
+  
+      </div>
+      <div class="post-meta">
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="行人检测-跟踪demo说明文档"><a href="#行人检测-跟踪demo说明文档" class="headerlink" title="行人检测/跟踪demo说明文档"></a>行人检测/跟踪demo说明文档</h1><p>[TOC]</p>
+<p>本行人检测demon使用HOG描述子+SVM分类器进行实现，采用跟踪速度较快的MOSSE跟踪器进行跟踪，每15帧进行一次行人检测进而对检测到的行人数量进行一次刷新。行人检测/跟踪效果如下</p>
+<p><img src="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/scale1_05_22_Mean.gif" alt="scale1_05_22_Mean"></p>
+<h2 id="一、理论基础"><a href="#一、理论基础" class="headerlink" title="一、理论基础"></a>一、理论基础</h2><p>行人检测、跟踪涉及目标检测与目标跟踪两大部分。对于目标检测部分，其大体流程图如下图所示。首先对于一张输入的图片，我们首先要使用<strong>特征描述子</strong>对它提取特征，特征描述子可以将目标区域输出为向量形式，我们称该向量为<strong>特征向量</strong>，常用的特征描述子有:HOG，SIFT，HAAR，SARF等。接下来我们要将特征描述子提取出的特征向量输入到训练好的分类器中，常见的分类器有SVM、Adaboost、ANN等。分类器输出的内容为分类标签，对于目标检测问题，分类器会输出判断结果(该区域是/否存在目标)，对于多分类问题分类器会输出不同的类别标签。</p>
+<p><img src="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/image-classification-pipeline.jpg" alt="image-classification-pipeline"></p>
+<h3 id="1-1-HOG特征描述子"><a href="#1-1-HOG特征描述子" class="headerlink" title="1.1 HOG特征描述子"></a>1.1 HOG特征描述子</h3><h4 id="1-1-1-什么是特征描述子？"><a href="#1-1-1-什么是特征描述子？" class="headerlink" title="1.1.1 什么是特征描述子？"></a>1.1.1 什么是特征描述子？</h4><p><strong>什么是图像的特征？</strong>特征是描述目标的一种方法，或者是目标的一种特点。生活中我们常通过身材、性别、年龄、长相、嗓音等特征描述一个人，同样对于图像，我们可以通过颜色(颜色直方图)、形状(SIFT、HOG、Haar)、纹理、边缘(canny算子、sobel算子)等特征进行描述。</p>
+<p><strong>什么是特征描述子？</strong>特征描述子是提取特定特征的手段，不同的特征描述子只能提取特定类型的特征。那么我们为什么要提取出特定特征呢？因为对于很多目标检测和分类问题，并非所有特征都对我们是有用的，比如说，在一个检测大衣上纽扣数量的任务中，因为纽扣的形状是圆形的，所以我们可以直接通过纽扣的轮廓来检测到纽扣，这时候纽扣的边缘或者说轮廓信息对我们是有用的，而纽扣的颜色信息对我们的就是无用的或者说冗余的。所以说，在这个任务中我们就可以选取一种只提取纽扣边缘信息的描述子来参与运算，而我们后面要提到的hog描述子就是一个典型的基于轮廓信息的描述子。另一方面，从输入输出角度来看，特征描述子可以将我们输入的图片样本转化为特征向量。</p>
+<h4 id="1-1-2-HOG特征描述子的原理"><a href="#1-1-2-HOG特征描述子的原理" class="headerlink" title="1.1.2 HOG特征描述子的原理"></a>1.1.2 HOG特征描述子的原理</h4><p>HOG特征描述子是一类典型的提取目标轮廓信息的描述子，与所有特征描述子一样，HOG描述子的输入是一张照片，输出是一个特征向量。HOG特征描述子的内部原理可以参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_35000721/article/details/109441618">HOG原理学习笔记</a></p>
+<h3 id="1-2-SVM分类器"><a href="#1-2-SVM分类器" class="headerlink" title="1.2  SVM分类器"></a>1.2  SVM分类器</h3><p>支持向量机的本质是在特征向量所在的特征空间中，寻找一个最恰当的超平面来划分两类/多类目标。对于其数学原理我们不过分深究，我们只需要了解到，对于一个训练好的分类器，当我们对它输入目标的特征向量，其输出应该是目标的分类标签即可。</p>
+<h3 id="1-3-目标跟踪算法"><a href="#1-3-目标跟踪算法" class="headerlink" title="1.3 目标跟踪算法"></a>1.3 目标跟踪算法</h3><p>目标跟踪是一种在视频中确定目标位置的方法。相比于逐帧对整张画面进行目标检测从而定位目标的方法，目标跟踪类算法会依靠目标之前的运行轨迹来对目标未来的轨迹进行预判，进而在小范围内对目标进行搜索，从而提高了运算速度。同时目标跟踪算法会对每个目标建立身份信息，而目标检测算法并不会区分目标之间的不同。</p>
+<h2 id="二、代码实现"><a href="#二、代码实现" class="headerlink" title="二、代码实现"></a>二、代码实现</h2><p>本项目的例程文件结构如下：</p>
+<p><img src="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/image-20210103162822272.png" alt="image-20210103162822272"></p>
+<ul>
+<li><strong>hogDetext.h</strong>：包含了hog特征描述子类的声明</li>
+<li><strong>function.cpp</strong>：包含了hog特征描述子类的实现，其中的<code>hog.detectMultiScale()</code>部分是本例程中参数调节的重点。</li>
+<li><strong>MOT_count.cpp：</strong>主程序</li>
+</ul>
+<h3 id="2-1-目标检测器的封装"><a href="#2-1-目标检测器的封装" class="headerlink" title="2.1 目标检测器的封装"></a>2.1 目标检测器的封装</h3><p>我们首先读取视频的第一帧，并对该帧中的行人进行检测从而判断行人的初始位置。为了方便起见，我们在<code>hogDetext.h</code>中创建了hog行人检测器类<code>HogDetector </code>，对HOG描述子与SVM分类器的参数设置进行了封装，该类的参数调节对目标检测的效果以及运算速度有着显著的影响。该类的具体声明如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HogDetector</span> </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">vector</span>&lt;<span class="keyword">double</span>&gt; weights;</span><br><span class="line">	HogDetector(); <span class="comment">// 创建HOG行人检测器</span></span><br><span class="line">	HogDetector(Mat _src); <span class="comment">// 对某图提取HOG特征</span></span><br><span class="line">	~HogDetector();</span><br><span class="line">	<span class="function"><span class="built_in">vector</span>&lt;Rect&gt; <span class="title">hogSvm</span><span class="params">()</span></span>; <span class="comment">// 成员函数，对当前帧进行行人检测</span></span><br><span class="line">	</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	Mat src;<span class="comment">//存储当前帧</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>观察类的声明我们可以得知，在需要对某张图片进行检测时，我们只需要使用<code>HogDetector(Mat _src)</code>输入目标图像，再利用<code>vector&lt;Rect&gt; hogSvm()</code>对目标进行检测即可。成员函数<code>hogSvm()</code>很重要，该成员函数需要完成三部分工作：设定使用到的SVM分类器、对当前帧进行多尺度的目标检测、人工剔除相互嵌套的目标区域。</p>
+<h4 id="2-1-1-选择分类器"><a href="#2-1-1-选择分类器" class="headerlink" title="2.1.1 选择分类器"></a>2.1.1 选择分类器</h4><p>由理论部分可知，HOG特征描述子提取出的特征向量需要输入一个已经训练好的SVM分类器中，对于行人检测场景，opencv官方提供了针对行人检测训练的SVM分类器，该分类器是基于HOG特征描述子提出者使用的数据集进行训练的，我们只需要人为的设定使用该分类器即可。其实现代码如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">HOGDescriptor hog;</span><br><span class="line">hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());<span class="comment">//使用官方训练的SVM分类器</span></span><br></pre></td></tr></table></figure>
+<h4 id="2-1-2-多尺度的行人检测"><a href="#2-1-2-多尺度的行人检测" class="headerlink" title="2.1.2 多尺度的行人检测"></a>2.1.2 多尺度的行人检测</h4><p>在选定了SVM分类器后我们需要对一张图片在多尺度上进行目标检测，为什么要在多尺度上进行目标检测呢？最传统的目标检测手段是使用一个滑动的窗口，来逐行对图像区域提取特征从而输入到分类器中。而在一张画面中目标由于远近关系，其大小会有不同(放缩)，多尺度的目标检测可以通过设置合理的参数来消除目标放缩对检测所带来的影响，我们使用到的函数是<code>detectMultiScale()</code>，其声明如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> cv::HOGDescriptor::detectMultiScale	(	InputArray 	img,</span><br><span class="line">											<span class="built_in">std</span>::<span class="built_in">vector</span>&lt; Rect &gt; &amp; 	foundLocations,</span><br><span class="line">											<span class="keyword">double</span> 	hitThreshold = <span class="number">0</span>,</span><br><span class="line">											Size 	winStride = Size(),</span><br><span class="line">											Size 	padding = Size(),</span><br><span class="line">											<span class="keyword">double</span> 	scale = <span class="number">1.05</span>,</span><br><span class="line">											<span class="keyword">double</span> 	finalThreshold = <span class="number">2.0</span>,</span><br><span class="line">											<span class="keyword">bool</span> 	useMeanshiftGrouping = <span class="literal">false</span> </span><br><span class="line">											)	</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>img</strong>：图像输入</li>
+<li><strong>foundLocations</strong> ：检测结果输出。存储了位置矩形的向量，位置矩形中包含了检测到目标的位置信息。其类型为std::vector&lt; Rect &gt;</li>
+<li><strong>hitThreshold</strong>：Threshold for the distance between features and SVM classifying plane. Usually it is 0 and should be specified in the detector coefficients (as the last free coefficient). But if the free coefficient is omitted (which is allowed), you can specify it manually here. 图像特征向量到SVM超平面的距离，一般取0</li>
+<li><strong>winStride</strong>：It must be a multiple of block stride. HOG检测窗口移动时的步长(水平及竖直)。</li>
+<li><strong>padding</strong>：在某些情况下在图像周围增加一些像素来提升检测精确度，默认不添加</li>
+<li><strong>scale</strong>：Coefficient of the detection window increase. 多尺度目标检测的控制参数，取值范围一般在1.01-1.5之间。通常情况下，取值越小，检测越细致，但计算量越大，出现目标嵌套的情况也越多</li>
+<li><strong>finalThreshold</strong>： 默认取2</li>
+<li><strong>useMeanshiftGrouping</strong>：选择是否使用Meanshift法消除多个检测窗口嵌套的情况，本示例中选择开启</li>
+</ul>
+<p><strong>在调试程序时，<code>winStride</code>与<code>scale</code>是两个极为重要的参数，对二者进行调节可以显著的提升程序的检测效果。</strong></p>
+<h4 id="2-1-3-消除检测框相互嵌套"><a href="#2-1-3-消除检测框相互嵌套" class="headerlink" title="2.1.3 消除检测框相互嵌套"></a>2.1.3 消除检测框相互嵌套</h4><p>在实际操作中，我们可能在多个尺度上都检测到了同一个目标，这是标记目标位置的矩形会出现嵌套情况，我们希望能检测出相互嵌套的的矩形，剔除被嵌套的矩形，只保留外部矩形，从而消除对同一目标的重复检测情况。该部分代码实现如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; found.size(); i++)</span><br><span class="line">	&#123;</span><br><span class="line">		Rect r = found[i];</span><br><span class="line">		<span class="keyword">int</span> j = <span class="number">0</span>;</span><br><span class="line">		<span class="keyword">for</span> (; j &lt; found.size(); j++)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">if</span> (i != j &amp;&amp; (r &amp; found[j]) == r)<span class="keyword">break</span>;<span class="comment">// 若r被嵌套于其他矩形中则跳出循环</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (j == found.size())<span class="comment">// 全部检测完</span></span><br><span class="line">		&#123;</span><br><span class="line">			foundfilter.push_back(r);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-2-主程序流程"><a href="#2-2-主程序流程" class="headerlink" title="2.2 主程序流程"></a>2.2 主程序流程</h3><p>在人为的对HOG目标检测器进行封装之后，我们只需要按照下图所示的程序流程图反复调用目标检测器与目标跟踪器即可。由于随着时间流逝，场景中部分目标会离开画面，部分新目标会进入画面，而目标跟踪算法并不能对新目标进行识别，所以我们需要间隔的进行目标检测，从而更新我们检测到的目标。在本项目中我们选择“每15帧进行目标检测”作为“是否重新检测目标”的标准。</p>
+<p><img src="https://blogpicbed.oss-cn-beijing.aliyuncs.com/img/%E8%A1%8C%E4%BA%BA%E6%A3%80%E6%B5%8B%E4%B8%8E%E8%B7%9F%E8%B8%AA%E6%B5%81%E7%A8%8B%E5%9B%BE.svg" alt="行人检测与跟踪流程图"></p>
+<h4 id="2-2-1-目标检测"><a href="#2-2-1-目标检测" class="headerlink" title="2.2.1 目标检测"></a>2.2.1 目标检测</h4><p>对于满足需要进行目标检测的帧，我们需要调用我们封装好的HOG检测器。经过我们的封装后，调用HOG特征描述子的方式很简单，具体如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">HogDetector <span class="title">hog</span><span class="params">(frame)</span></span>; <span class="comment">//输入当前帧frame</span></span><br><span class="line">targetBoxs = hog.hogSvm();<span class="comment">//目标检测，并将检测结果输出到targetBoxs中</span></span><br></pre></td></tr></table></figure>
+<p>在目标检测完成后，我们需要人为的将检测到目标的区域显示在画面上，该部分使用到了矩形绘制函数<code>rectangle()</code>以及字符显示函数<code>putText()</code>。同时为了后续的优化升级，我们将每个检测到的目标区域的置信度显示在了画面上。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; targetBoxs.size(); i++)</span><br><span class="line">	&#123;</span><br><span class="line">		rectangle(frame,targetBoxs[i],Scalar(<span class="number">0</span>, <span class="number">255</span>, <span class="number">0</span>),<span class="number">2</span>);<span class="comment">//绘制矩形</span></span><br><span class="line">		<span class="keyword">char</span> text[<span class="number">21</span>];</span><br><span class="line">		sprintf_s(text, <span class="string">&quot;%.2lf&quot;</span>, hog.weights[i]);<span class="comment">//表明每个目标的置信度</span></span><br><span class="line">		putText(frame, text, targetBoxs[i].tl(), FONT_HERSHEY_SIMPLEX, <span class="number">0.5</span>, Scalar(<span class="number">255</span>, <span class="number">0</span>, <span class="number">0</span>), <span class="number">1.5</span>);<span class="comment">//表明每个目标的置信度</span></span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2-2-2-多目标跟踪"><a href="#2-2-2-多目标跟踪" class="headerlink" title="2.2.2 多目标跟踪"></a>2.2.2 多目标跟踪</h4><p>对于不需要重新进行目标检测的画面，我们调用跟踪器对目标进行跟踪。opencv中实现了八种类型的跟踪器：BOOSTING, MIL, KCF, TLD, MEDIANFLOW, GOTURN, MOSSE, CSRT。关于它们的性能对比，请参考<a target="_blank" rel="noopener" href="https://www.learnopencv.com/object-tracking-using-opencv-cpp-python/">Object Tracking using OpenCV (C++/Python)</a>。目标跟踪器的输入是目标在上一帧的位置，其输出是目标在下一帧的位置。</p>
+<p>由于画面中存在多个目标，我们需要调用opencv中的多目标跟踪器类，并通过循环人为规定每个跟踪器的类型为MOSSE，该部分实现如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">vector</span>&lt;Rect&gt; targetBoxs;<span class="comment">// 存储了行人位置/目标检测器的输出</span></span><br><span class="line">Mat frame;<span class="comment">//当前帧</span></span><br><span class="line">Ptr&lt;MultiTracker&gt; multiTracker = cv::MultiTracker::create();</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; targetBoxs.size(); i++)</span><br><span class="line">&#123;</span><br><span class="line">	multiTracker-&gt;add(TrackerMOSSE::create(), frame, Rect2d(targetBoxs[i]));</span><br><span class="line">&#125;</span><br><span class="line">multiTracker-&gt;update(frame);<span class="comment">//在当前帧中更新目标位置</span></span><br></pre></td></tr></table></figure>
+<p>最后我们需要在画面中绘制出目标的位置，此部分代码与目标检测部分相同，故不再赘述。</p>
+<h4 id="2-2-3-统计目标信息"><a href="#2-2-3-统计目标信息" class="headerlink" title="2.2.3 统计目标信息"></a>2.2.3 统计目标信息</h4><p>程序的最后我们需要将我们检测到的目标数量进行统计输出，代码如下。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">putText(frame, <span class="string">&quot;Total people:&quot;</span> + to_string(targetBoxs.size()), Point(<span class="number">600</span>, <span class="number">40</span>), FONT_HERSHEY_SIMPLEX, <span class="number">1</span>, Scalar(<span class="number">0</span>, <span class="number">0</span>, <span class="number">255</span>), <span class="number">2.5</span>);</span><br></pre></td></tr></table></figure>
+
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/HOG%E7%89%B9%E5%BE%81%EF%BC%8C%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%EF%BC%8C%E7%9B%AE%E6%A0%87%E8%B7%9F%E8%B8%AA/" rel="tag"># HOG特征，目标检测，目标跟踪</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/12/30/%E6%91%84%E5%83%8F%E6%9C%BA%E6%A0%87%E5%AE%9A/" rel="prev" title="相机标定学习笔记(一)：单目标定">
+                  <i class="fa fa-chevron-left"></i> 相机标定学习笔记(一)：单目标定
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">杨济宁</span>
+</div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">17k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">16 分钟</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
