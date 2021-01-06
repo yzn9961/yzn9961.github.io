@@ -122,7 +122,7 @@
 <nav class="site-nav">
   <ul class="main-menu menu">
         <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
-        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">2</span></a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">1</span></a></li>
         <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">7</span></a></li>
         <li class="menu-item menu-item-个人简介"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>个人简介</a></li>
         <li class="menu-item menu-item-时间轴"><a href="/archives/" rel="section"><i class="fa fa-clock fa-fw"></i>时间轴</a></li>
@@ -177,7 +177,7 @@
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">1</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
@@ -252,7 +252,7 @@
       <span class="post-meta-item-text">发表于</span>
       
 
-      <time title="创建时间：2021-01-06 18:20:51 / 修改时间：18:24:48" itemprop="dateCreated datePublished" datetime="2021-01-06T18:20:51+08:00">2021-01-06</time>
+      <time title="创建时间：2021-01-06 18:20:51 / 修改时间：19:01:03" itemprop="dateCreated datePublished" datetime="2021-01-06T18:20:51+08:00">2021-01-06</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -261,10 +261,6 @@
       <span class="post-meta-item-text">分类于</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
           <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89/" itemprop="url" rel="index"><span itemprop="name">计算机视觉</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89/%E7%AE%97%E6%B3%95%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">算法笔记</span></a>
         </span>
     </span>
 
@@ -276,14 +272,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>5.1k</span>
+      <span>4.9k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>5 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -295,7 +291,7 @@
     
     <div class="post-body" itemprop="articleBody">
           <h2 id="特征描述子-feature-descriptor">特征描述子( Feature Descriptor)</h2>
-<p>==特征描述子就是描述图像特征的一种方式，是观察图像的一种视角==，这种视角能够提取出我们想要关注的特征并剔除掉多余的特征来简化图像信息。<strong>特征描述子需要尽可能的提取出图像中的有用信息</strong>。通常，特征描述子将一张大小为width×height×3 (通道数)的图片化成一个长度为n的特征向量/数组。以HOG特征为例，输入图像的大小是64×128×3，输出是一个长度为3780的特征向量。<strong>它对图像识别和目标检测这样的任务很有用。将由这些算法生成的特征向量作为支持向量机等分类算法的输入可以得到不错的结果。</strong></p>
+<p>特征描述子就是描述图像特征的一种方式，是观察图像的一种视角，这种视角能够提取出我们想要关注的特征并剔除掉多余的特征来简化图像信息。<strong>特征描述子需要尽可能的提取出图像中的有用信息</strong>。通常，特征描述子将一张大小为width×height×3 (通道数)的图片化成一个长度为n的特征向量/数组。以HOG特征为例，输入图像的大小是64×128×3，输出是一个长度为3780的特征向量。<strong>它对图像识别和目标检测这样的任务很有用。将由这些算法生成的特征向量作为支持向量机等分类算法的输入可以得到不错的结果。</strong></p>
 <p>对于不同的分类任务，不同的特征对我们的分类任务是有用的，因此选择的特征描述子也不同，如：在一张图片中检测纽扣，由于纽扣通常是圆形的，所以通过对图片进行边缘检测来判断是否为纽扣是可行的。在这个例子中，边缘信息就是有用的特征，而图像的颜色信息就是冗余(无用)的特征。同时一个好的特征也要具有区分能力（如区分纽扣与车轮）。</p>
 <p><strong>HOG特征描述子选择梯度方向分布作为特征，其原因在于图像的梯度包含了目标的边缘信息</strong>。一张图像的梯度(x、y方向的导数)在边缘和拐点处这类强度变化剧烈的区域幅值变化很大。而目标的边缘和拐点往往包含更多的目标信息，是我们需要关注的重点区域。</p>
 <h2 id="如何计算梯度方向直方图">如何计算梯度方向直方图</h2>
@@ -620,7 +616,38 @@
 
 
 
-  
+  <script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'none'
+      },
+      options: {
+        renderActions: {
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              const target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    const script = document.createElement('script');
+    script.src = '//cdn.jsdelivr.net/npm/mathjax@3.1.2/es5/tex-mml-chtml.js';
+    script.defer = true;
+    document.head.appendChild(script);
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.typesetClear();
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
 
 
 </body>
